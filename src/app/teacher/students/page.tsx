@@ -9,6 +9,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/Card"
 import { Avatar, AvatarFallback } from "@/components/ui/Avatar"
 import { Badge } from "@/components/ui/Badge"
 import { cn } from "@/lib/utils"
+import { STUDENTS } from "@/mock/demoData"
 
 export default function StudentsPage() {
     const [students, setStudents] = useState<any[]>([])
@@ -26,9 +27,24 @@ export default function StudentsPage() {
                 const res = await fetch(`/api/teacher/students?teacherId=${teacherId}`)
                 if (!res.ok) throw new Error('Failed to fetch students')
                 const data = await res.json()
-                setStudents(data)
+                if (data && data.length > 0) {
+                    setStudents(data)
+                } else {
+                    // Fallback to mock data if API returns empty
+                    setStudents(STUDENTS.map(s => ({
+                        ...s,
+                        support_level: s.supportLevel,
+                        avatar_label: s.avatar
+                    })))
+                }
             } catch (err: any) {
-                setError(err.message)
+                // Fallback to mock data when API/DB is unavailable
+                console.warn('API unavailable, using mock data:', err.message)
+                setStudents(STUDENTS.map(s => ({
+                    ...s,
+                    support_level: s.supportLevel,
+                    avatar_label: s.avatar
+                })))
             } finally {
                 setIsLoading(false)
             }

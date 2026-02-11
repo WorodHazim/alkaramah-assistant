@@ -135,24 +135,33 @@ export default function StudentProfilePage() {
         const fetchStudentData = async () => {
             setIsLoading(true)
             try {
-                // Parallel fetches for performance
-                const [studentRes, logsRes, evidenceRes, reportsRes, planRes] = await Promise.all([
-                    fetch(`/api/students/${studentId}`),
-                    fetch(`/api/students/${studentId}/logs`),
-                    fetch(`/api/evidence?studentId=${studentId}`),
-                    fetch(`/api/reports?studentId=${studentId}`),
-                    fetch(`/api/students/${studentId}/plan`)
-                ])
+                // Fetch each resource independently so one failure doesn't break all
+                let studentData: any = null
+                let logsData: any = null
+                let evidenceData: any = null
+                let reportsData: any = null
 
-                const [studentData, logsData, evidenceData, reportsData, planData] = await Promise.all([
-                    studentRes.json(),
-                    logsRes.json(),
-                    evidenceRes.json(),
-                    reportsRes.json(),
-                    planRes.json()
-                ])
+                try {
+                    const studentRes = await fetch(`/api/students/${studentId}`)
+                    if (studentRes.ok) studentData = await studentRes.json()
+                } catch { /* DB unavailable, will use mock */ }
 
-                if (studentData.student) {
+                try {
+                    const logsRes = await fetch(`/api/students/${studentId}/logs`)
+                    if (logsRes.ok) logsData = await logsRes.json()
+                } catch { /* will use mock */ }
+
+                try {
+                    const evidenceRes = await fetch(`/api/evidence?studentId=${studentId}`)
+                    if (evidenceRes.ok) evidenceData = await evidenceRes.json()
+                } catch { /* will use mock */ }
+
+                try {
+                    const reportsRes = await fetch(`/api/reports?studentId=${studentId}`)
+                    if (reportsRes.ok) reportsData = await reportsRes.json()
+                } catch { /* will use mock */ }
+
+                if (studentData?.student) {
                     setStudent({
                         ...studentData.student,
                         supportLevel: studentData.student.support_level === 3 ? 'High' : studentData.student.support_level === 2 ? 'Medium' : 'Low',
@@ -165,37 +174,35 @@ export default function StudentProfilePage() {
                         avatar: studentData.student.avatar_label
                     })
                 }
+                // else: keep the mock-initialized student state
+
                 if (logsData) {
                     const logsArray = Array.isArray(logsData)
                         ? logsData
                         : Array.isArray((logsData as any)?.recentLogs)
                             ? (logsData as any).recentLogs
                             : [];
+
                     const mappedLogs: LogEntry[] = logsArray.map((l: any) => ({
                         id: l.id,
                         studentId: l.student_id,
                         createdAt: l.created_at,
-                        domains: l.domains || ["Academic"],
-        }));
-
-                        id: l.id,
-                        studentId: l.student_id,
-                        createdAt: l.created_at,
                         domains: l.domains || ['Academic'],
-                        objectiveId: l.objective_id,
+                        aetDomain: l.aet_domain || '',
+                        aetCode: l.aet_code || '',
+                        learningIntention: l.learning_intention || '',
                         objectiveText: l.objective,
                         outcome: l.outcome,
                         difficulty: l.difficulty,
-                        engagement: l.engagement > 80 ? 'High' : l.engagement > 40 ? 'Medium' : 'Low',
+                        engagementLevel: l.engagement_level || 'Medium',
                         prompts: l.prompts || [],
-                        teacherNote: l.teacher_note,
-                        evidenceCount: 0 // Could be enhanced later
+                        teacherComment: l.teacher_comment || ''
                     }))
                     setAllLogs(mappedLogs)
                 }
 
-                // Set AI plan from student data (refinement: the backend should return it in the detail view or we fetch the latest)
-                if (studentData.latestPlan) {
+                // Set AI plan from student data
+                if (studentData?.latestPlan) {
                     setRecentAnalysis({
                         studentName: studentData.student.name,
                         insights: ["Data loaded from profile"],
@@ -207,7 +214,7 @@ export default function StudentProfilePage() {
                     } as any)
                 }
 
-                if (evidenceData) {
+                if (Array.isArray(evidenceData)) {
                     const mappedEvidence: Evidence[] = evidenceData.map((e: any) => ({
                         id: e.id,
                         studentId: e.student_id,
@@ -219,14 +226,16 @@ export default function StudentProfilePage() {
                         linkedLogId: e.linked_log_id,
                         linkedCategory: e.linked_category,
                         linkedObjective: e.linked_objective_text,
-                        addedBy: "Ms. Sarah", // Placeholder for now
+                        addedBy: "Ms. Sarah",
                         tags: e.tags || []
                     }))
                     setEvidenceList(mappedEvidence)
+                } else {
+                    // Fallback to mock evidence
+                    setEvidenceList(MOCK_EVIDENCE.filter(e => e.studentId === student.id))
                 }
 
-                if (reportsData) {
-                    // Map DB reports to ProgressReport interface
+                if (Array.isArray(reportsData)) {
                     const mappedReports: ProgressReport[] = reportsData.map((r: any) => ({
                         ...r.content,
                         id: r.id,
@@ -237,7 +246,8 @@ export default function StudentProfilePage() {
                 }
             } catch (error) {
                 console.error("Failed to fetch student data:", error)
-                showToast("Failed to load student data", "error")
+                // Keep mock data that was initialized in state
+                setEvidenceList(MOCK_EVIDENCE.filter(e => e.studentId === student.id))
             } finally {
                 setIsLoading(false)
             }
