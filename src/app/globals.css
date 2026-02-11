@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+@theme {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 173 34% 54%; /* #63AFA5 - Muted Teal */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 204 82% 81%; /* #A9D6F5 - Soft Baby Blue */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 173 34% 54%;
+
+    --radius: 1rem;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .bg-subtle-gradient {
+    @apply bg-gradient-to-br from-[#F0F9F8] to-[#F0F7FF];
+  }
+  
+  .glass-panel {
+    @apply bg-white/80 backdrop-blur-sm border border-white/20;
+  }
 }
+
+:root {
+  --primary: #7fbfb3; /* pastel teal */
+  --primary-soft: #e8f4f1;
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+  --border-soft: #e5e7eb;
+}
+
