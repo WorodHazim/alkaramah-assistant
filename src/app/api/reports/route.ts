@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
@@ -9,21 +8,32 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'studentId is required' }, { status: 400 })
     }
 
-    const supabase = createServerClient()
+    // Try Supabase first
+    const supabaseUrl = process.env.SUPABASE_URL
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    try {
-        const { data: reports, error } = await supabase
-            .from('reports')
-            .select('*')
-            .eq('student_id', studentId)
-            .order('created_at', { ascending: false })
+    if (supabaseUrl && supabaseUrl.startsWith('https://') && !supabaseUrl.includes('placeholder') && serviceKey && !serviceKey.includes('placeholder')) {
+        try {
+            const { createServerClient } = await import('@/lib/supabase/server')
+            const supabase = createServerClient()
 
-        if (error) {
-            return NextResponse.json({ error: error.message }, { status: 400 })
+            const { data: reports, error } = await supabase
+                .from('reports')
+                .select('*')
+                .eq('student_id', studentId)
+                .order('created_at', { ascending: false })
+
+            if (error) {
+                console.error('Supabase reports query error:', error.message)
+                return NextResponse.json([])
+            }
+
+            return NextResponse.json(reports || [])
+        } catch (dbError: any) {
+            console.warn('Supabase unavailable for reports GET:', dbError.message)
         }
-
-        return NextResponse.json(reports)
-    } catch (error) {
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
+
+    // Demo fallback: return empty array
+    return NextResponse.json([])
 }

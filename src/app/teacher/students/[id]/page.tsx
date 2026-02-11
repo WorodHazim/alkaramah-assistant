@@ -518,12 +518,17 @@ export default function StudentProfilePage() {
                 })
             })
 
-            if (!res.ok) throw new Error('Failed to save report')
+            if (!res.ok) {
+                const errBody = await res.json().catch(() => ({ error: 'Unknown error' }))
+                console.error('Report generate failed:', res.status, errBody)
+                throw new Error(errBody.error || 'Failed to save report')
+            }
 
             // Refetch reports
             const reportsRes = await fetch(`/api/reports?studentId=${studentId}`)
             const reportsData = await reportsRes.json()
-            const mappedReports: ProgressReport[] = reportsData.map((r: any) => ({
+            const reportsArray = Array.isArray(reportsData) ? reportsData : []
+            const mappedReports: ProgressReport[] = reportsArray.map((r: any) => ({
                 ...r.content,
                 id: r.id,
                 status: r.status,
